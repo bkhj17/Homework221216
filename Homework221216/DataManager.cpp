@@ -1,24 +1,6 @@
 #include "Framework.h"
 
-stringstream FileLoader::LoadFile(string filename)
-{
-	stringstream ss;
-	ifstream ifs;
-	ifs.open(filename, ios::in);
-	if (ifs.fail())
-		return ss;
-
-	string s;
-	while (!ifs.eof()) {
-		getline(ifs, s);
-
-		ss << s << "\n";
-	}
-	ifs.close();
-	return ss;
-}
-
-void FileLoader::SaveFile(string filename, stringstream& ss)
+void FileSave::SaveFile(string filename, stringstream& ss)
 {
 	ofstream ofs;
 	ofs.open(filename, ios::out);
@@ -44,10 +26,9 @@ DataManager::DataManager()
 
 DataManager::~DataManager()
 {
-	delete instance;
 }
 
-PlayerData DataManager::GetPlayerData(int level)
+pair<CharacterData, PlayerExpData> DataManager::GetPlayerData(int level)
 {
 	return playerLevelTable[level];
 }
@@ -57,15 +38,76 @@ ItemData DataManager::GetItemData(int itemKey)
 	return itemTable[itemKey];
 }
 
+pair<CharacterData, MonsterInfo> DataManager::GetMonsterData(int monsterKey)
+{
+	return monsterTable[monsterKey];
+}
+
 void DataManager::LoadPlayerLevelTable()
 {
-	
+	ifstream ifs;
+	ifs.open(FILE_PLAYER_LEVEL_TABLE);
+	if(ifs.fail()) {
+		cout << "캐릭터 레벨 테이블 로드 실패.\n";
+		return;
+	}
+
+	while (!ifs.eof()) {
+		CharacterData cData;
+		PlayerExpData eData;
+		ifs >> eData.level;
+		ifs >> cData.maxHp;
+		ifs >> cData.attack;
+		ifs >> eData.levelUpExp;
+		playerLevelTable[eData.level] = make_pair(cData, eData);
+	}
+	ifs.close();
 }
 
 void DataManager::LoadItemTable()
 {
+	ifstream ifs;
+	ifs.open(FILE_ITEM_TABLE);
+	if (ifs.fail()) {
+		cout << "아이템 테이블 로드 실패.\n";
+		return;
+	}
+
+	while (!ifs.eof()) {
+		ItemData data;
+		ifs >> data.key;
+		ifs >> data.name;
+		ifs >> data.price;
+		itemTable[data.key] = data;
+	}
+	ifs.close();
 }
 
 void DataManager::LoadMonsterTable()
 {
+	ifstream ifs;
+	ifs.open(FILE_MONSTER_TABLE);
+	if (ifs.fail()) {
+		cout << "몬스터 테이블 로드 실패.\n";
+		return;
+	}
+
+	while (!ifs.eof()) {
+		int monsterKey = 0;
+		CharacterData data;
+		MonsterInfo mInfo;
+		int dropExp = 0;
+		
+		ifs >> monsterKey;
+		ifs >> data.name;
+		ifs >> data.maxHp;
+		data.curHp = data.maxHp;
+		ifs >> data.attack;
+		ifs >> mInfo.dropExp;
+		ifs >> mInfo.dropMoney;
+
+		monsterTable[monsterKey] = make_pair(data, mInfo);
+	}
+	ifs.close();
+
 }

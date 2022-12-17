@@ -30,9 +30,6 @@
     <ClCompile Include="PlayerInstance.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="BaseData.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Item.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -46,6 +43,15 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DungeonRunner.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Monster.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Character.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ShowPlayer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,9 +71,6 @@
     <ClInclude Include="PlayerInstance.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="BaseData.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="Item.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -78,6 +81,15 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="DungeonRunner.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Monster.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Character.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ShowPlayer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

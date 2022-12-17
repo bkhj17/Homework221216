@@ -1,29 +1,32 @@
 #pragma once
 #define FILE_PLAYER_SAVE "PlayerSaveFile.tsv"
 
-struct PlayerData {
+struct PlayerExpData {
 	int level = 1;
-	int maxHp = 0;
-	int attack = 0;
+	int curExp = 0;
 	int levelUpExp = 999;
 };
 
-class PlayerStatus {
+class PlayerStatus : public CharacterStatus {
+	friend class PlayerInstance;
+
+	static const int START_MONEY = 2000;
 public:
-	PlayerStatus(string name, PlayerData* data, int curHp, int curExp, int money);
-	PlayerStatus(string name, PlayerData* data);
-	PlayerStatus(string name, int level);
+	PlayerStatus(CharacterData&, PlayerExpData&, int money);
+	PlayerStatus(string name, int level = 1, int money = START_MONEY);
 	~PlayerStatus();
 
+	void GainExp(int expGain);
+	void LevelUp();
+	
 	void SaveStatus(stringstream& ss);
 
-	const string& GetName() { return name; }
+	void ShowInfo();
+
+	int GetLevel() { return playerLevel.level; }
 private:
-	int money = 0;
-	int curHp = 0;
-	int curExp = 0;
-	PlayerData* data = nullptr;
-	string name = "플레이어";
+	int money = START_MONEY;
+	PlayerExpData playerLevel;
 };
 
 class PlayerInstance
@@ -36,19 +39,35 @@ public:
 			instance = new PlayerInstance;
 		return instance;
 	}
+	static void Delete() { if(instance != nullptr)	delete instance; }
+
+	PlayerStatus* GetStatus() { return status; }
+
+	void GameStart();
 
 	void CreateNewPlayer();
 	void LoadSaveData();
 	void SavePlayerData();
 
-	void AddItem(int itemKey, int count);
+	void ShowPlayerInfo();
 
+	void AddItem(int itemKey, int count = 1);
+	bool HaveItem(int itemKey);
 
-	map<int, Item*>& GetBag() { return bag; }
+	const int& GetMoney() { 
+			
+		return status->money; 
+	}
+	bool UseMoney(int pay);
+	void GainMoney(int gain);
+
+	map<int, Item*>* GetBag() { 
+		return &bag; 
+	}
+	void UseItem(int itemKey);
 private:
 	static PlayerInstance* instance;
 
 	PlayerStatus* status = nullptr;
 	map<int, Item*> bag;
 };
-

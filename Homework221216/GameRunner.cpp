@@ -1,22 +1,55 @@
 #include "Framework.h"
 
+GameRunner::GameRunner()
+{
+    showPlayer = new ShowPlayer;
+    shop = new ShopRunner;
+    inventory = new InventoryRunner;
+    dungeon = new DungeonRunner;
+}
+
+GameRunner::~GameRunner()
+{
+    delete showPlayer;
+    delete shop;
+    delete inventory;
+    delete dungeon;
+}
+
 void GameRunner::Run()
 {
+    requestRender = true;
+    requestInput = true;
     while (true) {
         if (curRunner == nullptr) {
-            __super::Run();
+            if (requestRender) {
+                Render();
+                requestRender = false;
+            }
+            if (requestInput)
+                input = Input();
+            Update(input);
         }
         else {
             curRunner->Run();
             if (curRunner->IsExit()) {
-                curRunner = nullptr;
+                Init();
+                requestInput = true;
             }
         }
+        if (PlayerInstance::Get()->GetStatus()->IsDead())
+            Exit();
         if (IsExit())
             break;
     }
 
     //게임 종료
+}
+
+void GameRunner::Init()
+{
+    __super::Init();
+    curRunner = nullptr;
 }
 
 void GameRunner::Render()
@@ -26,15 +59,30 @@ void GameRunner::Render()
     cout << "[로비]" << endl;
     if (cursor == 0)
         cout << "->";
-    cout << "\t상점" << endl;
+    cout << "\t플레이어 보기" << endl;
     if (cursor == 1)
         cout << "->";
-    cout << "\t가방" << endl;
+    cout << "\t상점" << endl;
     if (cursor == 2)
+        cout << "->";
+    cout << "\t가방" << endl;
+    if (cursor == 3)
+        cout << "->";
+    cout << "\t던전" << endl;
+    if (cursor == 4)
+        cout << "->";
+    cout << "\t저장" << endl;
+    if (cursor == 5)
         cout << "->";
     cout << "\t종료" << endl;
     cout << "\n==================================\n"
         << "위 : W, 아래 : S, Z: 확인 X: 종료\n";
+
+
+    if (saved) {
+        cout << "\n 세이브 \n";
+        saved = false;
+    }
 }
 
 void GameRunner::Update(InputType input)
@@ -46,35 +94,49 @@ void GameRunner::Update(InputType input)
     case InputType::UP:
         cursor--;
         if (cursor < 0)
-            cursor = 2;
+            cursor = MAX_MENU-1;
 
         requestInput = true;
         break;
     case InputType::DOWN:
-        cursor = (++cursor) % 3;
+        cursor = (++cursor) % MAX_MENU;
 
         requestInput = true;
         break;
     case InputType::YES:
         if (cursor == 0) {
-            if (shop != nullptr) {
-                curRunner = shop;
-                shop->Init();
-            }
+            curRunner = showPlayer;
+            curRunner->Init();
         }
         else if (cursor == 1) {
-            if (inventory != nullptr) {
-                curRunner = inventory;
-                shop->Init();
+            if (shop != nullptr) {
+                curRunner = shop;
+                curRunner->Init();
             }
         }
-        else if (cursor == 2)
-            gameState = GameState::EXIT;
-        cursor = 0;
+        else if (cursor == 2) {
+            if (inventory != nullptr) {
+                curRunner = inventory;
+                curRunner->Init();
+            }
+        }
+        else if (cursor == 3) {
+            if (dungeon != nullptr) {
+                curRunner = dungeon;
+                curRunner->Init();
+            }
+        }
+        else if (cursor == 4) {
+            PlayerInstance::Get()->SavePlayerData();
+
+            saved = true;
+        }
+        else if (cursor == 5)
+            Exit();
         requestInput = true;
         break;
     case InputType::CANCEL:
-        gameState = GameState::EXIT;
+        Exit();
         requestRender = false;
         requestInput = false;
         break;
@@ -82,95 +144,3 @@ void GameRunner::Update(InputType input)
         break;
     }
 }
-
-/*
-#include "InventoryTest.h"
-#include <iostream>
-#include "ItemNode.h"
-#include "Node.h"
-#include "LinkedList.h"
-#include "DoublyLinkedList.h"
-#include "Shop.h"
-#include <conio.h>
-
-InventoryTest::InventoryTest()
-{
-    list = new DoublyLinkedList<Item>();
-    shop = new Shop();
-}
-
-InventoryTest::~InventoryTest()
-{
-    delete list;
-    delete shop;
-}
-
-void InventoryTest::RunLobby()
-{
-}
-
-void InventoryTest::RunBag()
-{
-}
-
-void InventoryTest::RunShop()
-{
-    if (shop->Run(input))
-        gameState = GameState::LOBBY;
-    requestRender = true;
-    requestInput = true;
-}
-
-void InventoryTest::Run()
-{
-    gameState = GameState::LOBBY;
-    requestInput = true;
-    requestRender = true;
-    money += 3000;
-
-    while (1) {
-        Render();
-        input = GetInput();
-        switch (gameState)
-        {
-        case InventoryTest::GameState::LOBBY:
-            RunLobby();
-            break;
-        case InventoryTest::GameState::BAG:
-            RunBag();
-            break;
-        case InventoryTest::GameState::SHOP:
-            RunShop();
-            break;
-        case InventoryTest::GameState::EXIT:
-            break;
-        }
-        if (gameState == GameState::EXIT)
-            break;
-    }
-}
-
-void InventoryTest::Render()
-{
-    if (!requestRender)
-        return;
-    requestRender = false;
-
-
-    //상황 표시 : 가게, 가방, 로비
-    //상황별
-}
-
-void InventoryTest::AddItem(int id, int cnt)
-{
-    for (auto* node = list->GetFront(); node != nullptr; node = node->next) {
-        if (node->data.itemKey == id) {
-            node->data.count += cnt;
-            return;
-        }
-    }
-
-    list->PushBack(Item(id, cnt));
-}
-
-*/

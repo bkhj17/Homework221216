@@ -8,13 +8,9 @@ InventoryRunner::~InventoryRunner()
 {
 }
 
-void InventoryRunner::Run()
-{
-}
-
 void InventoryRunner::Update(InputType input)
 {
-    map<int, Item*>* playerBag = &PlayerInstance::Get()->GetBag();
+    auto playerBag = PlayerInstance::Get()->GetBag();
 
     switch (input)
     {
@@ -23,38 +19,37 @@ void InventoryRunner::Update(InputType input)
     case InputType::UP:
         cursor--;
         if (cursor < 0)
-            cursor = playerBag->size();
+            cursor = (int)playerBag->size();
 
         requestInput = true;
-        requestRender = true;
         break;
     case InputType::DOWN:
         cursor = (++cursor) % (playerBag->size() + 1);
 
         requestInput = true;
-        requestRender = true;
         break;
     case InputType::YES:
         if (cursor == playerBag->size()) {
             Exit();
         }
+        requestInput = true;
         break;
     case InputType::CANCEL:
         Exit();
+        requestInput = true;
         break;
     default:
         break;
     }
-
-    playerBag = nullptr;
 }
 
 void InventoryRunner::Render()
 {
-    map<int, Item*>* playerBag = &PlayerInstance::Get()->GetBag();
+    auto playerBag = PlayerInstance::Get()->GetBag();
  
+    system("cls");
     cout << "[가방]\n";
-    cout << "소지금 : " << /*PlayerInstance::Get()->money <<*/ "\n";
+    cout << "소지금 : " << PlayerInstance::Get()->GetMoney() << "\n";
     int cnt = 0;
     for (auto it = playerBag->begin(); it != playerBag->end(); it++) {
         if (cursor == cnt++)
@@ -70,5 +65,4 @@ void InventoryRunner::Render()
     cout << "\n==================================\n"
         << "위 : W, 아래 : S, Z: 확인 X: 뒤로\n";
 
-    playerBag = nullptr;
 }

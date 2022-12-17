@@ -4,9 +4,8 @@
 #define FILE_ITEM_TABLE "ItemTable.tsv"
 #define FILE_MONSTER_TABLE "MonsterTable.tsv"
 
-class FileLoader {
+class FileSave {
 public:
-	static stringstream LoadFile(string filename);
 	static void SaveFile(string filename, stringstream& ss);
 };
 
@@ -20,9 +19,12 @@ public:
 			instance = new DataManager();
 		return instance;
 	}
+	static void Delete() { if(instance != nullptr) delete instance; }
 
-	PlayerData GetPlayerData(int level = 1);
+	pair<CharacterData, PlayerExpData> GetPlayerData(int level = 1);
 	ItemData GetItemData(int itemKey = 0);
+	pair<CharacterData, MonsterInfo> GetMonsterData(int monsterKey = 0);
+	int ItemDataNum() { return (int)itemTable.size(); }
 private:
 	void LoadPlayerLevelTable();
 	void LoadItemTable();
@@ -32,8 +34,9 @@ private:
 private:
 	static DataManager* instance;
 
-	map<int, PlayerData> playerLevelTable;
+	map<int, pair<CharacterData, PlayerExpData>> playerLevelTable;
 	map<int, ItemData> itemTable;
+	map<int, pair<CharacterData, MonsterInfo>> monsterTable;
 	//MonsterTable
 };
 

@@ -6,21 +6,24 @@ void BaseRunner::Run()
         Render();
         requestRender = false;
     }
-    if (requestInput)
+    if (requestInput) {
         input = Input();
+        requestRender = true;
+    }
     Update(input);
+    input = InputType::NONE;
 }
 
 void BaseRunner::Init()
 {
     isExit = false;
-    bool requestRender = true;
-    bool requestInput = true;
+    requestRender = true;
+    requestInput = true;
+    cursor = 0;
 }
 
 InputType BaseRunner::Input()
 {
-
     if (!requestInput)
         return InputType::NONE;
     requestInput = false;
@@ -28,7 +31,8 @@ InputType BaseRunner::Input()
     while (1) {
         if (_kbhit()) {
             requestRender = true;
-            switch (_getch())
+            int c = _getch();
+            switch (c)
             {
             case 'w':
                 return InputType::UP;
@@ -43,8 +47,4 @@ InputType BaseRunner::Input()
             }
         }
     }
-}
-
-void BaseRunner::Update(InputType input)
-{
 }

@@ -1,16 +1,22 @@
 #pragma once
 class GameRunner : public BaseRunner
 {
-	static const int MAX_MENU = 3;
+	static const int MAX_MENU = 6;
 
 	enum class GameState {
 		LOBBY,
+		SHOW_PLAYER,
 		BAG,
 		SHOP,
-		EXIT,
+		DUNGEON,
+		SAVE,
+		EXIT
 	};
 	GameState gameState = GameState::LOBBY;
 public:
+	GameRunner();
+	~GameRunner();
+
 	// BaseRunner을(를) 통해 상속됨
 	virtual void Run() override;
 
@@ -22,39 +28,10 @@ public:
 private:
 	BaseRunner* curRunner = nullptr;
 
+	ShowPlayer* showPlayer = nullptr;
 	ShopRunner* shop = nullptr;
 	InventoryRunner* inventory = nullptr;
-	DungeonRunner* dunfeon = nullptr;
+	DungeonRunner* dungeon = nullptr;
+
+	bool saved = false;
 };
-
-
-/*
-struct Item;
-
-class InventoryTest
-{
-	InputType input = InputType::NONE;
-
-
-public:
-	InventoryTest();
-	~InventoryTest();
-
-	InputType GetInput();
-	void RunLobby();
-	void RunBag();
-	void RunShop();
-	void Run();
-	void Render();
-
-	void AddItem(int id, int cnt);
-
-private:
-	int money = 0;
-	int cursor = 0;
-	DoublyLinkedList<Item>* list;
-
-	class Shop* shop = nullptr;
-};
-
-*/

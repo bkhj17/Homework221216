@@ -129,8 +129,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BaseData.cpp" />
     <ClCompile Include="BaseRunner.cpp" />
+    <ClCompile Include="Character.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="DungeonRunner.cpp" />
     <ClCompile Include="Framework.cpp">
@@ -140,20 +140,24 @@
     <ClCompile Include="Homework221216.cpp" />
     <ClCompile Include="InventoryRunner.cpp" />
     <ClCompile Include="Item.cpp" />
+    <ClCompile Include="Monster.cpp" />
     <ClCompile Include="PlayerInstance.cpp" />
     <ClCompile Include="ShopRunner.cpp" />
+    <ClCompile Include="ShowPlayer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BaseData.h" />
     <ClInclude Include="BaseRunner.h" />
+    <ClInclude Include="Character.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="DungeonRunner.h" />
     <ClInclude Include="Framework.h" />
     <ClInclude Include="GameRunner.h" />
     <ClInclude Include="InventoryRunner.h" />
     <ClInclude Include="Item.h" />
+    <ClInclude Include="Monster.h" />
     <ClInclude Include="PlayerInstance.h" />
     <ClInclude Include="ShopRunner.h" />
+    <ClInclude Include="ShowPlayer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

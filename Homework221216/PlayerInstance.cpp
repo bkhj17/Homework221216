@@ -1,47 +1,102 @@
 #include "Framework.h"
 #include "PlayerInstance.h"
 
-PlayerStatus::PlayerStatus(string name, PlayerData* data)
-	: name(name), data(data)
+PlayerStatus::PlayerStatus(CharacterData& cData, PlayerExpData& eData, int money)
+	: CharacterStatus(cData), playerLevel(eData), money(money)
 {
-	curHp = data->maxHp;
 }
 
-PlayerStatus::PlayerStatus(string name, int level)
-	: name(name)
+PlayerStatus::PlayerStatus(string name, int level, int money)
+	: money(money)
 {
-	DataManager::Get()->GetPlayerData(level);
-}
+	auto data = DataManager::Get()->GetPlayerData(level);
+	characterData = data.first;
+	characterData.name = name;
+	playerLevel = data.second;
 
+
+	characterData.curHp = characterData.maxHp;
+}
 PlayerStatus::~PlayerStatus()
 {
-	delete data;
+}
 
+void PlayerStatus::GainExp(int expGain)
+{
+	playerLevel.curExp += expGain;
+	cout << characterData.name << "은/는 " << expGain << "경험치를 얻었다\n";
+	Sleep(500);
+
+	while (playerLevel.levelUpExp > 0 && playerLevel.curExp >= playerLevel.levelUpExp)
+		LevelUp();
 }
 
 void PlayerStatus::SaveStatus(stringstream& ss)
 {
-	ss << name << "\n";
-	ss << data->level << "\n";
-	ss << curHp << "\t" << data->maxHp << "\n";
-	ss << curExp << "\t" << data->levelUpExp << "\n";
+	ss << characterData.name << "\n";
+	ss << playerLevel.level << "\n";
+	ss << characterData.curHp << "\t" << characterData.maxHp << "\n";
+	ss << characterData.attack << "\n";
+	ss << playerLevel.curExp << "\t" << playerLevel.levelUpExp << "\n";
 	ss << money << "\n";
+}
+
+void PlayerStatus::LevelUp()
+{
+	auto data = DataManager::Get()->GetPlayerData(playerLevel.level+1);
+	data.first.name = characterData.name;
+	characterData = data.first;
+
+	playerLevel = data.second;
+	characterData.curHp = characterData.maxHp;
+
+	cout << characterData.name << "의 레벨이 " << playerLevel.level << "이 되었다!\n";
+	ShowInfo();
+}
+
+void PlayerStatus::ShowInfo()
+{
+	cout << characterData.name << "\t레벨 : " << playerLevel.level << endl
+		<< "HP : " << characterData.curHp << " / " << characterData.maxHp << endl
+		<< "ATK : " << characterData.attack << endl << endl;
+	cout << "Exp : " << playerLevel.curExp << " / " << playerLevel.levelUpExp << endl;
 }
 
 /////////////////////////////////////////////////////////////////////
 
-PlayerInstance* instance = nullptr;
+PlayerInstance* PlayerInstance::instance = nullptr;
 
 PlayerInstance::PlayerInstance()
 {
+	GameStart();
 }
 
 PlayerInstance::~PlayerInstance()
 {
 	delete status;
 	for (auto it = bag.begin(); it != bag.end(); ) {
-		delete it->second;
-		bag.erase(it);
+		if(it->second != nullptr)
+			delete it->second;
+		it = bag.erase(it);
+	}
+}
+
+void PlayerInstance::GameStart()
+{
+	int select = 0;
+	while (1) {
+		cout << "1. 불러오기 2. 새 게임 -> ";
+		cin >> select;
+		cin.ignore();
+
+		if (select == 1) {
+			LoadSaveData();
+			break;
+		}
+		else if (select == 2) {
+			CreateNewPlayer();
+			break;
+		}
 	}
 }
 
@@ -52,29 +107,48 @@ void PlayerInstance::CreateNewPlayer()
 	cin >> inputName;
 	//이름 받기
 	status = new PlayerStatus(inputName, 1);
+
+	SavePlayerData();
 }
 
 void PlayerInstance::LoadSaveData()
 {
-	stringstream ss = FileLoader::LoadFile(FILE_PLAYER_SAVE);
+	ifstream ifs;
+	ifs.open(FILE_PLAYER_SAVE, ios::in);
+	if (ifs.fail()) {
+		cout << "세이브 파일이 없습니다. 새로운 데이터를 만듭니다.\n";
+		CreateNewPlayer();
+		return;
+	}
 
 	if (status)
 		delete status;
 
-	string name;
-	PlayerData* data = new PlayerData;
-	int curHp = 0, curExp = 0, money = 0;
+	CharacterData cData;
+	PlayerExpData eData;
+	int money = 0;
 
-	ss >> name;
-	ss >> data->level;
-	ss >> curHp; 
-	ss >> data->maxHp;
-	ss >> curExp;
-	ss >> data->levelUpExp;
-	ss >> money;
+	ifs >> cData.name 
+		>> eData.level
+		>> cData.curHp
+		>> cData.maxHp
+		>> cData.attack
+		>> eData.curExp
+		>> eData.levelUpExp
+		>> money;
 
-	status = new PlayerStatus(name, data, curHp, curExp, money);
+	status = new PlayerStatus(cData, eData, money);
 
+	int itemNum = 0;
+	ifs >> itemNum;
+	while (itemNum--) {
+		Item item;
+		ifs >> item.GetData().key >> item.GetData().name >> item.GetData().price;
+		ifs >> item.Count();
+		bag[item.GetData().key] = new Item(item);
+	}
+
+	ifs.close();
 }
 
 void PlayerInstance::SavePlayerData()
@@ -84,18 +158,59 @@ void PlayerInstance::SavePlayerData()
 	status->SaveStatus(ss);
 
 	//bag 담기
-	ss << bag.size();
+	ss << bag.size() << "\n";
 	for (auto it = bag.begin(); it != bag.end(); it++) {
-		it->second->GetItemSaveData(ss);
+		if(it->second != nullptr)
+			it->second->GetItemSaveData(ss);
 	}
 
-	FileLoader::SaveFile(FILE_PLAYER_SAVE, ss);
+	FileSave::SaveFile(FILE_PLAYER_SAVE, ss);
 }
 
 void PlayerInstance::AddItem(int itemKey, int count)
 {
-	if (bag.find(itemKey) != bag.end())
+	if (bag.find(itemKey) == bag.end())
 		bag[itemKey] = new Item(itemKey, count);
 	else
 		bag[itemKey]->Count() += count;
+}
+
+void PlayerInstance::ShowPlayerInfo()
+{
+	status->ShowInfo();
+}
+
+bool PlayerInstance::HaveItem(int itemKey)
+{
+	return bag.find(itemKey) != bag.end();
+}
+
+bool PlayerInstance::UseMoney(int pay)
+{
+	if (status->money < pay)
+		return false;
+
+	status->money -= pay;
+	return true;
+}
+
+void PlayerInstance::GainMoney(int gain)
+{
+	status->money += gain;
+}
+
+void PlayerInstance::UseItem(int itemKey) {
+	if (bag.find(itemKey) == bag.end())
+		return;
+	
+	if ((--bag[itemKey]->Count()) == 0) {
+		for (auto it = bag.begin(); it != bag.end();) {
+			if (it->first == itemKey) {
+				delete it->second;
+				it = bag.erase(it);
+			}
+			else
+				it++;
+		}
+	}
 }

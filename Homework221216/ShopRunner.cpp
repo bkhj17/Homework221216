@@ -1,57 +1,123 @@
 #include "Framework.h"
 
-
-void ShopRunner::Run()
+ShopRunner::ShopRunner()
 {
+	for (int i = 0; i < DataManager::Get()->ItemDataNum(); i++) {
+		sellList.push_back(DataManager::Get()->GetItemData(i));
+	}
+}
+
+ShopRunner::~ShopRunner()
+{
+}
+
+void ShopRunner::Init()
+{
+	__super::Init();
+	shopState = ShopState::MENU_SELECT;
+	cursor = 0;
+	noMoney = false;
 }
 
 void ShopRunner::Update(InputType input)
 {
+	switch (shopState)
+	{
+	case ShopState::MENU_SELECT:
+		if (MenuSelect(input))
+			Exit();
+		break;
+	case ShopState::BUY:
+		BuyRun(input);
+		break;
+	case ShopState::SELL:
+		SellRun(input);
+		break;
+	case ShopState::EXIT:
+		Exit();
+	}
+	requestInput = true;
 }
 
 void ShopRunner::Render()
 {
-}
+	system("cls");
+	cout << "[상점]" << endl;
 
-
-/*
-#include "InventoryTest.h"
-#include "Shop.h"
-#include "ItemNode.h"
-#include "DoublyNode.h"
-#include "DoublyLinkedList.h"
-
-Shop::Shop()
-{
-	sellList = new DoublyLinkedList<Item>();
-	for (int i = 0; i < ITEM_NUM; i++) {
-		sellList->PushBack(Item(i, 0));
+	auto playerBag = PlayerInstance::Get()->GetBag();
+	if (playerBag == nullptr) {
+		cout << "가방 접근 실패\n";
+		return;
 	}
-}
 
-Shop::~Shop()
-{
-	playerMoney = nullptr;
-	playerList = nullptr;
-	sellList = nullptr;
-}
+	switch (shopState)
+	{
+	case ShopState::MENU_SELECT:
+		if (cursor == 0)
+			cout << "->";
+		cout << "\t산다\n";
 
-void Shop::Init(int* money, DoublyLinkedList<Item>* list)
-{
-	shopState = ShopState::MENU_SELECT;
-	cursor = 0;
-	playerMoney = money;
-	playerList = list;
-	noMoney = false;
-	for (auto* node = list->GetFront(); node != nullptr; node = node->next) {
-		sellList->Find(node->data.itemKey)->data.count = node->data.count;
+		if (cursor == 1)
+			cout << "->";
+		cout << "\t판다\n";
+
+		if (cursor == 2)
+			cout << "->";
+		cout << "\t나간다\n";
+		break;
+	case ShopState::BUY:
+	{
+		cout << "소지금 : " << PlayerInstance::Get()->GetMoney() << "\n";
+
+		int key = 0;
+		for (; key < sellList.size(); key++) {
+			if (cursor == key)
+				cout << "->";
+			cout << "\t" << sellList[key].name << "\t " << sellList[key].price << "\t";
+			cout << (PlayerInstance::Get()->HaveItem(key) ?
+				(*playerBag)[key]->Count() : 0) << "개 소지\n";
+		}
+		
+		if (cursor == key)
+			cout << "->";
+		cout << "\t뒤로\n";
+
 	}
+	break;
+	case ShopState::SELL:
+	{
+
+		int count = 0;
+		cout << "소지금 :" << PlayerInstance::Get()->GetMoney() << "\n";
+		if (playerBag->empty()) {
+			cout << "소지품 없음\n";
+		}
+		else {
+			for (auto it = playerBag->begin(); it != playerBag->end(); it++) {
+				if (cursor == count)
+					cout << "->";
+				cout << "\t" << it->second->GetData().name << "\t" << it->second->Count() << "개\t판매가 : " << it->second->GetData().price / 2 << "\n";
+				count++;
+			}
+		}
+		if (cursor == count)
+			cout << "->";
+		cout << "\t뒤로";
+	}
+	break;
+	}
+
+	playerBag = nullptr;
+	cout << "\n==================================\n"
+		<< "위 : W, 아래 : S, Z: 확인 X: 뒤로\n";
 }
 
-bool Shop::MenuSelect(const InputType& input)
+bool ShopRunner::MenuSelect(const InputType& input)
 {
 	switch (input)
 	{
+	case InputType::NONE:
+		break;
 	case InputType::UP:
 		if (--cursor < 0)
 			cursor = 2;
@@ -72,7 +138,7 @@ bool Shop::MenuSelect(const InputType& input)
 			cursor = 0;
 			break;
 		case 2:
-			shopState = ShopState::OUT;
+			shopState = ShopState::EXIT;
 			break;
 		default:
 			break;
@@ -80,45 +146,85 @@ bool Shop::MenuSelect(const InputType& input)
 		cursor = 0;
 		break;
 	case InputType::CANCEL:
-		shopState = ShopState::OUT;
+		shopState = ShopState::EXIT;
 		break;
 	}
-	return (shopState == ShopState::OUT);
+
+
+	return (shopState == ShopState::EXIT);
 }
 
-void Shop::BuyRun(const InputType& input)
+void ShopRunner::BuyRun(const InputType& input)
 {
+	auto playerBag = PlayerInstance::Get()->GetBag();
+
 	switch (input)
 	{
 	case InputType::UP:
 		if (--cursor < 0) {
-			cursor = ITEM_NUM;
+			cursor = (int)sellList.size();
 		}
 		break;
 	case InputType::DOWN:
-		if (++cursor > ITEM_NUM + 1) {
+		if (++cursor > sellList.size()) {
 			cursor = 0;
 		}
 		break;
 	case InputType::YES:
-		if (cursor == ITEM_NUM) {
+		if (cursor == sellList.size()) {
 			shopState = ShopState::MENU_SELECT;
 			cursor = 0;
 		}
 		else {
-			if (UseMoney(sellList->Find(cursor)->data.data.price)) {
-				bool isIn = false;
-				for (auto* node = playerList->GetFront(); node != nullptr; node = node->next) {
-					if (node->data.itemKey == cursor) {
-						node->data.count++;
-						isIn = true;
-						break;
-					}
-				}
-				if (!isIn) {
-					playerList->PushBack(Item(cursor));
-				}
+			if (PlayerInstance::Get()->UseMoney(sellList[cursor].price)) {
+				PlayerInstance::Get()->AddItem(cursor);
 			}
+		}
+		break;
+	case InputType::CANCEL:
+		shopState = ShopState::MENU_SELECT;
+		cursor = 0;
+		break;
+	default:
+		break;
+	}
+
+	playerBag = nullptr;
+}
+
+void ShopRunner::SellRun(const InputType& input)
+{
+	auto playerBag = PlayerInstance::Get()->GetBag();
+
+	switch (input)
+	{
+	case InputType::UP:
+		if (--cursor < 0) {
+			cursor = (int)playerBag->size();
+		}
+		break;
+	case InputType::DOWN:
+		if (++cursor > playerBag->size()) {
+			cursor = 0;
+		}
+		break;
+	case InputType::YES:
+		if (cursor == playerBag->size()) {
+			shopState = ShopState::MENU_SELECT;
+			cursor = 0;
+		}
+		else {
+			auto it = playerBag->find(cursor);
+			if (it == playerBag->end())
+				break;
+
+			PlayerInstance::Get()->GainMoney(it->second->GetData().price / 2);
+
+			if (--(it->second->Count()) == 0)
+				playerBag->erase(it);
+
+			if (cursor > playerBag->size())
+				cursor = (int)playerBag->size();
 		}
 		break;
 	case InputType::CANCEL:
@@ -130,145 +236,4 @@ void Shop::BuyRun(const InputType& input)
 	}
 }
 
-void Shop::SellRun(const InputType& input)
-{
-	switch (input)
-	{
-	case InputType::UP:
-		if (--cursor < 0) {
-			cursor = playerList->GetSize();
-		}
-		break;
-	case InputType::DOWN:
-		if (++cursor > playerList->GetSize()) {
-			cursor = 0;
-		}
-		break;
-	case InputType::YES:
-		if (cursor == playerList->GetSize()) {
-			shopState = ShopState::MENU_SELECT;
-			cursor = 0;
-		}
-		else {
-			auto node = playerList->Find(cursor);
-			*playerMoney += node->data.data.price / 2;
 
-			if (--node->data.count == 0)
-				playerList->Erase(cursor);
-
-			if (cursor > playerList->GetSize())
-				cursor = playerList->GetSize();
-		}
-		break;
-	case InputType::CANCEL:
-		shopState = ShopState::MENU_SELECT;
-		cursor = 0;
-		break;
-	default:
-		break;
-	}
-}
-
-bool Shop::Run(const InputType& input)
-{
-	switch (shopState)
-	{
-	case Shop::ShopState::MENU_SELECT:
-		if (MenuSelect(input))
-			return true;
-		break;
-	case Shop::ShopState::BUY:
-		BuyRun(input);
-		break;
-	case Shop::ShopState::SELL:
-		SellRun(input);
-		break;
-	case Shop::ShopState::OUT:
-		return true;
-	}
-
-	return false;
-}
-
-void Shop::Render()
-{
-	cout << "[상점]" << endl;
-	switch (shopState)
-	{
-	case Shop::ShopState::MENU_SELECT:
-		if(cursor == 0)
-			cout << "->";
-		cout << "\t산다\n";
-
-		if (cursor == 1)
-			cout << "->";
-		cout << "\t판다\n";
-
-		if (cursor == 2)
-			cout << "->";
-		cout << "\t나간다\n";
-		break;
-	case Shop::ShopState::BUY:
-	{
-		int key = 0;
-		cout << "소지금 : " << *playerMoney << "\n";
-		for (auto* node = sellList->GetFront(); node != nullptr; node = node->next) {
-			if (cursor == key)
-				cout << "->";
-			cout << "\t" << ITEM_DATABASE[key].name << "\t " << ITEM_DATABASE[key].price << "\t";
-			auto playerData = GetPlayerData(key);
-			cout << (playerData != nullptr ? playerData->count : 0) << "개 소지\n";
-			key++;
-		}
-
-		if (cursor == key)
-			cout << "->";
-		cout << "\t뒤로\n";
-	}
-		break;
-	case Shop::ShopState::SELL:
-	{
-		int count = 0;
-		cout << "소지금 :" << *playerMoney << "\n";
-		if (playerList->Empty()) {
-			cout << "소지품 없음\n";
-		}
-		else {
-			for (auto* node = playerList->GetFront(); node != nullptr; node = node->next) {
-				if (cursor == count)
-					cout << "->";
-				cout << "\t" << node->data.data.name << "\t" << node->data.count << "개\t판매가 : " << node->data.data.price / 2 << "\n";
-				count++;
-			}
-		}
-		if (cursor == count)
-			cout << "->";
-		cout << "\t뒤로";
-	}
-		break;
-	}
-
-	cout << "\n==================================\n"
-		<< "위 : W, 아래 : S, Z: 확인 X: 뒤로\n";
-}
-
-Item* Shop::GetPlayerData(int key)
-{
-	for (auto* node = playerList->GetFront(); node != nullptr; node = node->next) {
-		if (node->data.itemKey == key) {
-			return &(node->data);
-		}
-	}
-	return nullptr;
-}
-
-
-bool Shop::UseMoney(int pay)
-{
-	if (!AblePay(pay))
-		return false;
-
-	*playerMoney -= pay;
-	return true;
-}
-*/
